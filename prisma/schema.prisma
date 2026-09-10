@@ -1,0 +1,108 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER MODEL
+// ============================================
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  password  String     // Will be hashed
+  name      String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // Relations
+  portfolios Portfolio[]
+  watchlist  Watchlist[]
+
+  @@map("users")
+}
+
+// ============================================
+// PORTFOLIO MODEL
+// ============================================
+model Portfolio {
+  id        String     @id @default(cuid())
+  userId    String
+  name      String     // e.g., "Main Portfolio"
+  cash      Float      @default(10000) // Available cash to invest
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // Relations
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  holdings  Holding[]
+  transactions Transaction[]
+
+  @@map("portfolios")
+}
+
+// ============================================
+// HOLDING MODEL (Current positions)
+// ============================================
+model Holding {
+  id              String     @id @default(cuid())
+  portfolioId     String
+  symbol          String     // e.g., "AAPL", "BTC"
+  quantity        Float      // Number of shares/coins
+  averageCostPerUnit Float   // What you paid per unit on average
+  currentPrice    Float      @default(0) // Live price
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  // Relations
+  portfolio       Portfolio  @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  // Ensure one holding per symbol per portfolio
+  @@unique([portfolioId, symbol])
+  @@map("holdings")
+}
+
+// ============================================
+// TRANSACTION MODEL (Buy/Sell history)
+// ============================================
+model Transaction {
+  id          String     @id @default(cuid())
+  portfolioId String
+  symbol      String     // e.g., "AAPL"
+  type        String     // "BUY" or "SELL"
+  quantity    Float      // Shares bought/sold
+  price       Float      // Price per unit at transaction time
+  totalValue  Float      // quantity * price
+  notes       String?    // Optional notes
+  createdAt   DateTime   @default(now())
+
+  // Relations
+  portfolio   Portfolio  @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  @@map("transactions")
+}
+
+// ============================================
+// WATCHLIST MODEL (Assets being monitored)
+// ============================================
+model Watchlist {
+  id          String     @id @default(cuid())
+  userId      String
+  symbol      String     // e.g., "AAPL"
+  currentPrice Float     @default(0)
+  addedAt     DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Ensure one watchlist entry per symbol per user
+  @@unique([userId, symbol])
+  @@map("watchlist")
+}
