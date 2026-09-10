@@ -4,7 +4,6 @@ import { PrismaAdapter } from "@auth/prisma-adapter"
 import prisma from "@/lib/prisma"
 import bcrypt from "bcrypt"
 
-// Extend NextAuth types to include 'id'
 declare module "next-auth" {
   interface Session extends DefaultSession {
     user: DefaultSession["user"] & {
